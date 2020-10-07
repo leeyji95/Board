@@ -6,18 +6,20 @@ public class WriteDTO {
 	private String subject;
 	private String name;
 	private String regdate;
+	private String content;
 	
 	public WriteDTO() {
 		super();
 		System.out.println("WriteDTO 생성자");
 	}
 	
-	public WriteDTO (int wkey, String subject, String name, String regdate) {
+	public WriteDTO (int wkey, String subject, String name, String regdate, String content) {
 		super();
 		this.wkey = wkey;
 		this.subject = subject;
 		this.name = name;
 		this.regdate = regdate;
+		this.content = content;
 	}
 
 	public int getWkey() {
@@ -43,6 +45,14 @@ public class WriteDTO {
 	}
 	public void setRegdate(String regdate) {
 		this.regdate = regdate;
+	}
+
+	public String getContent() {
+		return content;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
 	}
 
 	@Override

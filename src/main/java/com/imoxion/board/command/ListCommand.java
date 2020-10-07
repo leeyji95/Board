@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,7 +16,6 @@ import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.imoxion.board.beans.Key;
 import com.imoxion.board.beans.WriteDTO;
 import com.imoxion.board.controller.AjaxController;
 
@@ -96,11 +94,13 @@ public class ListCommand implements Command {
 				// 파일이름
 				String fileName = fileList[i].getName();
 				String subject = null, name = null, regdate = null;
+				String content = "";
 
 				// 글번호
 				int wkey = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
 
 				if (wkey < end) { // 1 ~ 10, 2 ~ 20
+					logger.info("wkey < end - " + wkey + " < " + end);
 					// 제목
 					int startIndex = fileName.indexOf("_");
 					int endIndex = fileName.indexOf(".txt");
@@ -131,9 +131,10 @@ public class ListCommand implements Command {
 						e1.printStackTrace();
 					}
 
-					list.add(new WriteDTO(wkey, subject, name, regdate));
+					list.add(new WriteDTO(wkey, subject, name, regdate, content));
 				
 				} else if (wkey >= end) { // 11 ~ 20, 21 ~ 30
+					logger.info("wkey >= end - " + wkey + " >= " + end);
 
 					if (wkey < end) { // 글번호가 end 번호보다 작아지는 경우 바로 나온다.
 						break;
@@ -169,7 +170,7 @@ public class ListCommand implements Command {
 						e1.printStackTrace();
 					}
 				
-					list.add(new WriteDTO(wkey, subject, name, regdate));
+					list.add(new WriteDTO(wkey, subject, name, regdate, content));
 				}
 
 				status = "OK";
@@ -194,7 +195,7 @@ public class ListCommand implements Command {
 			}
 
 			for (int i = 0; i < dataArr.size(); i++) {
-				System.out.println("JSONArray 에 저장된 값 : " + dataArr.get(i));
+				logger.info("JSONArray 에 저장된 값 : " + dataArr.get(i));
 			}
 
 			// 글목록

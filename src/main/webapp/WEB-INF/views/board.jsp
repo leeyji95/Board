@@ -219,18 +219,6 @@ ul.pagination a:hover:not(.active) {background-color: #ddd;}
 
 				<span class="close" title="Close Modal">&times;</span> 
 
-<%-- 				<c:set var="wkey" value="${sessionScope.wkey }"/> --%>
-<%-- 				<c:out value="${sessionScope.wkey }"></c:out> --%>
-			
-<%-- 				<c:choose> --%>
-<%-- 					<c:when test="${empty wkey }"> --%>
-<%-- 						<input type='hidden' name='wkey' value="0"> wkey 가 비어 있다면 처음 0 으로 세팅 --%>
-<%-- 					</c:when> --%>
-<%-- 					<c:otherwise> --%>
-<%-- 						<input type='hidden' name='wkey' value="${sessionScope.wkey }"> 비어있지 않으면 세션에 저장된 값 보내기 --%>
-<%-- 					</c:otherwise> --%>
-<%-- 				</c:choose> --%>
-				
 				<input type='hidden' name='wkey' >
 				<div class='d01 btn_group_header'>
 					<div class='left'>

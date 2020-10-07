@@ -75,8 +75,6 @@ function loadPage(page){
 					
 					// 업데이트된 list 에 필요한 이벤트 가동
 					addViewEvent();
-					// ★만약 위 코드를 $(document).ready() 에 두면 동작 안할 것이다. 
-					// 뭐가 완료된 시점에서 뭐가 실행되어야 하는지 정확히 알아야 함. =======>   //클릭하는 리스너는 페이지 로딩이 끝난 시점에 동작하도록 해야 실행된다. 
 				} else{
 					alert("출력할 데이터가 없습니다.");
 				}
@@ -208,9 +206,9 @@ function chkWrite(){
 		success : function(data, status){
 			if(status == "success"){ // 코드 200 
 				if(data.status == "OK"){ // 정상적으로 file 저장
-					alert("글 등록 성공~!");
+					alert("글 등록 성공!");
 				} else{
-					alert("글 등록에 실패하였습니다...ㅠ");
+					alert("글 등록에 실패하였습니다.");
 				}
 			}
 		}
@@ -274,30 +272,22 @@ function chkDelete(){
 function addViewEvent(){
 	$("#list .subject").click(function(){
 		
-//		alert($(this).text() + " : " + $(this).attr('data-uid'));  /*data-uid 내가 만든 커스텀 데이터임*/
-		
-		
-		// 우리가 위에서 uid 값 알아냈으니까, 그 uid 로 읽어와야지
 		// 읽어오기
 		$.ajax({
-			url : "view.ajax?uid=" + $(this).attr('data-uid'),
+			url : "view.do?wkey=" + $(this).attr('data-wkey'),
 			type : "GET",
 			cache : false,
+			dataType : "JSON",
 			success : function(data, status){
 				if(status == "success"){
 					if(data.status == "OK"){
 						
-						// 읽어온 view 데이터를 전역변수에 세팅    ---> 전역변수에 심어놓기!!
-						viewItem = data.data[0];
+						// 읽어온 view 데이터를 전역변수에 세팅
+						viewItem = data;
 						
 						// 팝업에 보여주기
-						// TODO
 						setPopup("view");
 						$("#dlg_write").show();
-						
-						
-						// 리스트상의 조회수 증가시키기
-						$("#list [data-viewcnt='" + viewItem.uid + "']").text(viewItem.viewcnt);
 						
  					} else {
  						alert("VIEW 실패 " + data.message);
@@ -332,6 +322,47 @@ function setPopup(mode){
 		$("#dlg_write textarea[name='content']").attr("readonly", false);
 		$("#dlg_write textarea[name='content']").css("border", "1px solid #ccc");
 	}
+	
+	// 글읽기
+	if(mode == 'view'){
+		$('#dlg_write .title').text("글읽기");
+		$('#dlg_write .btn_group_header').show();
+		$('#dlg_write .btn_group_write').hide();
+		$('#dlg_write .btn_group_view').show();
+		$('#dlg_write .btn_group_update').hide();
+		
+		$("#dlg_write input[name='wkey']").val(viewItem.wkey);  // 나중에 삭제/수정을 위해 필요
+		
+		$("#dlg_write input[name='subject']").val(viewItem.subject);
+		$("#dlg_write input[name='subject']").attr("readonly", true);
+		$("#dlg_write input[name='subject']").css("border", "solid", "0.3px");
+
+		$("#dlg_write input[name='name']").val(viewItem.name);
+		$("#dlg_write input[name='name']").attr("readonly", true);
+		$("#dlg_write input[name='name']").css("border", "none");
+
+		$("#dlg_write textarea[name='content']").val(viewItem.content);
+		$("#dlg_write textarea[name='content']").attr("readonly", true);
+		$("#dlg_write textarea[name='content']").css("border", "none");
+	}
+
+	// 글수정
+	if(mode == 'update'){
+		$('#dlg_write .title').text("글 수정");
+		$('#dlg_write .btn_group_header').show();
+		$('#dlg_write .btn_group_write').hide();
+		$('#dlg_write .btn_group_view').hide();
+		$('#dlg_write .btn_group_update').show();
+		
+		$("#dlg_write input[name='subject']").attr("readonly", false);
+		$("#dlg_write input[name='subject']").css("border", "1px solid #ccc");
+
+		$("#dlg_write input[name='name']").attr("readonly", true);  // 이름은 수정 불가능 하도록  설정 
+
+		$("#dlg_write textarea[name='content']").attr("readonly", false);
+		$("#dlg_write textarea[name='content']").css("border", "1px solid #ccc");
+	}
+	
 
 	
 } // end setPopup()
