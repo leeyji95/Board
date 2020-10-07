@@ -331,4 +331,104 @@ public class AjaxController {
 
 	} // end View()
 
+	
+	@RequestMapping("/boardfile/updateOk.do")
+	public void UpdateOk(HttpServletRequest request, HttpServletResponse response, 
+			@RequestParam("wkey") String wkey, @RequestParam("subject") String subject, @RequestParam("content") String content) {
+		
+		// response 에 필요한 값들
+		StringBuffer message = new StringBuffer();
+		String status = "FAIL"; // 기본 FAIL
+
+		// 해당 wkey 글번호로 제목, 작성자, 내용
+		File curDir = new File(AjaxController.DIR_PATH);
+		List<WriteDTO> list = new ArrayList<WriteDTO>();
+
+		FilenameFilter filter = new FilenameFilter() {
+
+			public boolean accept(File curDir, String name) {
+				return name.startsWith(wkey);
+			}
+		};
+
+		String[] fileName = curDir.list(filter); // 해당 글번호로 시작하는 파일이름을 배열로 출력한다.
+
+		for (int i = 0; i < fileName.length; i++) {
+			logger.info(fileName[i]);
+
+			// 제목
+			int startIndex = fileName[i].indexOf("_");
+			int endIndex = fileName[i].indexOf(".txt");
+			subject = fileName[i].substring(startIndex + 1, endIndex).trim();
+
+			// 작성자, 내용
+			try (BufferedReader br = new BufferedReader(
+					new FileReader(new File(AjaxController.DIR_PATH, fileName[i])))) {
+				String line;
+				StringBuffer sb = new StringBuffer();
+
+				while ((line = (br.readLine())) != null) {
+					sb.append(line + "\n");
+				}
+
+				// 작성자
+				startIndex = sb.toString().indexOf("]");
+				endIndex = sb.toString().indexOf("제목");
+				name = sb.toString().substring(startIndex + 2, endIndex).trim();
+
+				// 내용
+				int startIndex2 = sb.toString().indexOf("내용");
+				content = sb.toString().substring(startIndex2 + 3).trim();
+
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+			list.add(new WriteDTO(Integer.parseInt(wkey), subject, name, regdate, content));
+		}
+		
+		
+		JSONArray dataArr = new JSONArray(); // array
+		JSONObject jsonObj = new JSONObject();
+
+		for (int i = 0; i < list.size(); i++) {
+
+			jsonObj.put("wkey", list.get(i).getWkey());
+			jsonObj.put("name", list.get(i).getName());
+			jsonObj.put("subject", list.get(i).getSubject());
+			jsonObj.put("content", list.get(i).getContent());
+			jsonObj.put("status", "OK");
+			jsonObj.put("message", "글을 조회하는데 실패하였습니다.");
+
+			// array 에 추가
+			dataArr.add(jsonObj);
+		}
+		
+		
+		
+		
+	} // end UpdateOk
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 } // end AjaxController

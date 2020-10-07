@@ -331,11 +331,11 @@ function setPopup(mode){
 		$('#dlg_write .btn_group_view').show();
 		$('#dlg_write .btn_group_update').hide();
 		
-		$("#dlg_write input[name='wkey']").val(viewItem.wkey);  // 나중에 삭제/수정을 위해 필요
+		$("#dlg_write input[name='wkey']").val(viewItem.wkey);  // 삭제/수정을 위해 필요
 		
 		$("#dlg_write input[name='subject']").val(viewItem.subject);
 		$("#dlg_write input[name='subject']").attr("readonly", true);
-		$("#dlg_write input[name='subject']").css("border", "solid", "0.3px");
+		$("#dlg_write input[name='subject']").css("border", "none");
 
 		$("#dlg_write input[name='name']").val(viewItem.name);
 		$("#dlg_write input[name='name']").attr("readonly", true);
@@ -362,9 +362,6 @@ function setPopup(mode){
 		$("#dlg_write textarea[name='content']").attr("readonly", false);
 		$("#dlg_write textarea[name='content']").css("border", "1px solid #ccc");
 	}
-	
-
-	
 } // end setPopup()
 
 // 특정 uid 의 글 삭제하기
@@ -374,9 +371,9 @@ function deleteUid(uid){
 	
 	// POST 방식
 	$.ajax({
-		url: "deleteOk.ajax",
+		url: "deleteOk.do",
 		type: "post",
-		data: "uid=" + uid,
+		data: "wkey=" + wkey,
 		cache: false,
 		success: function(data, status){
 			if(status == "success"){
@@ -400,7 +397,7 @@ function chkUpdate(){
 	
 	var data = $("#frmWrite").serialize();
 	$.ajax({
-		url: "updateOk.ajax",
+		url: "updateOk.do",
 		type: "post",
 		cache: false,
 		data : data,
