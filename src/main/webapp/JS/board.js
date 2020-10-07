@@ -50,14 +50,14 @@ $(document).ready(function(){
 	});
 });
 
-window.onkeyup = function(e) {
-	var key = e.keyCode ? e.keyCode : e.which;
-
-	if(key == 27) {
-		$(".modal").fadeOut(90);
-		$("body").css({overflow:'scroll'}).unbind('touchmove');
-	}
-}
+//window.onkeyup = function(e) {
+//	var key = e.keyCode ? e.keyCode : e.which;
+//
+//	if(key == 27) {
+//		$(".modal").fadeOut(90);
+//		$("body").css({overflow:'scroll'}).unbind('touchmove');
+//	}
+//}
 	
 // page 번째 페이지 로딩 
 function loadPage(page){
@@ -70,14 +70,16 @@ function loadPage(page){
 		, success : function(data, status){
 			if(status == "success"){
 				
-				alert("AJAX 성공 : request 성공"); // 최초 로딩 시 뜸 
+//				alert("AJAX 성공 : request 성공"); // 최초 로딩 시 뜸 
 				if(updateList(data)){
 					
 					// 업데이트된 list 에 필요한 이벤트 가동
 					addViewEvent();
 					// ★만약 위 코드를 $(document).ready() 에 두면 동작 안할 것이다. 
 					// 뭐가 완료된 시점에서 뭐가 실행되어야 하는지 정확히 알아야 함. =======>   //클릭하는 리스너는 페이지 로딩이 끝난 시점에 동작하도록 해야 실행된다. 
-				} // end if
+				} else{
+					alert("출력할 데이터가 없습니다.");
+				}
 			}
 		}
 	});
@@ -126,7 +128,7 @@ function updateList(jsonObj){
 		// 페이징 업데이트
 		var pagination = buildPagination(jsonObj.writepages, jsonObj.totalpage, jsonObj.page, jsonObj.pagerows);
 		$("#pagination").html(pagination);
-		
+	
 		
 		return true;
 	} else{

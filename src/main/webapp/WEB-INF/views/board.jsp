@@ -180,6 +180,7 @@ ul.pagination a:hover:not(.active) {background-color: #ddd;}
 		<form id="frmList" name="frmList">
 			<table>
 				<thead>
+					<th>선택</th>
 					<th>글번호</th>
 					<th>제목</th>
 					<th>작성자</th>

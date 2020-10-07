@@ -1,22 +1,35 @@
 package com.imoxion.board.command;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.imoxion.board.beans.Key;
+import com.imoxion.board.beans.WriteDTO;
 import com.imoxion.board.controller.AjaxController;
 
 public class ListCommand implements Command {
-	
+
+	private static final Logger logger = LoggerFactory.getLogger(ListCommand.class);
+
 	@Override
-	
 	public void execute(HttpServletRequest request, HttpServletResponse response) {
 
-		System.out.println("ListCommand 진입");
-		
+		logger.info("ListCommand 진입");
+
 		// response 에 필요한 값들
 		StringBuffer message = new StringBuffer();
 		String status = "FAIL"; // 기본 FAIL
@@ -58,131 +71,145 @@ public class ListCommand implements Command {
 		File curDir = new File(curWorkingDir);
 
 		File[] fileList = curDir.listFiles();
-		status = "OK";
+		List<WriteDTO> list = new ArrayList<WriteDTO>();
 
 		// 폴더 안에 비어있으면
 		if (fileList == null) {
-			message.append("[리스트할 데이터(파일)가 없습니다]");
+			message.append("[출력할 데이터(파일)가 없습니다]");
+			status = "OK";
+			request.setAttribute("message", message.toString());
 		} else { // 파일이 있는 경우
 			// 파일(글) 전체 개수
 			totalCnt = fileList.length;
-
 			// 총 몇 페이지 분량인지
 			totalPage = (int) Math.ceil(totalCnt / (double) pageRows);
 
 			// 몇 번째 row 부터?
-			int from = (page - 1) * pageRows + 1;
-			
-			System.out.println("from :: " + from);
-			// 페이지 from 부터 from + pageRows 까지
+			int from = (page - 1) * pageRows;
+			int end = from + pageRows;
 
-			// 1. 글번호 wkey 값을 뽑는다.
-			// 2. 페이지 번호 RNUM 붙인다.
+			// 페이지 from 부터 end 까지 (ex. 0~10까지 for문 돌아. 10개 출력해.
+			// 그럼 10개씩 출력할건데, 12개의 파일이 있어.
 
-//			int RNUM = 0; // 디폴트 0 세팅
-//			String fileName = null;
-//			for (int i = 0; i < fileList.length; i++) {
-//				if (fileList[i].isFile()) { // file 인지 확인
-//					// 파일이름
-//					fileName = fileList[i].getName();
-//				}
-//			} // end for
-			System.out.println("Key.getInstance().getWkey() ::: 글번호 :::  "  + Key.getInstance().getWkey());
-			if(Key.getInstance().getWkey() == fileList.length) {
-				int wkey = Key.getInstance().getWkey(); // 마지막 키값..
-				for(int i = 0; i < wkey; i++) {
-					// 파일이름
-					String fileName = fileList[i].getName();
+			for (int i = from; i < fileList.length; i++) {
 
+				// 파일이름
+				String fileName = fileList[i].getName();
+				String subject = null, name = null, regdate = null;
+
+				// 글번호
+				int wkey = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
+
+				if (wkey < end) { // 1 ~ 10, 2 ~ 20
 					// 제목
 					int startIndex = fileName.indexOf("_");
 					int endIndex = fileName.indexOf(".txt");
-					String subject = fileName.substring(startIndex + 1, endIndex).trim();
-					
-				}
+					subject = fileName.substring(startIndex + 1, endIndex).trim();
+
+					// 작성자, 날짜
+					try (BufferedReader br = new BufferedReader(new FileReader(new File(curDir, fileName)))) {
+						String line;
+						StringBuffer sb = new StringBuffer();
+
+						while ((line = (br.readLine())) != null) {
+							sb.append(line + "\n");
+						}
+
+						// 작성자
+						startIndex = sb.toString().indexOf("]");
+						endIndex = sb.toString().indexOf("제목");
+						name = sb.toString().substring(startIndex + 2, endIndex).trim();
+
+						// 날짜
+						int startIndex2 = sb.toString().indexOf("날짜");
+						int endIndex2 = sb.toString().indexOf("작성자");
+						regdate = sb.toString().substring(startIndex2 + 4, endIndex2).trim();
+
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+
+					list.add(new WriteDTO(wkey, subject, name, regdate));
 				
+				} else if (wkey >= end) { // 11 ~ 20, 21 ~ 30
+
+					if (wkey < end) { // 글번호가 end 번호보다 작아지는 경우 바로 나온다.
+						break;
+					}
+					
+					// 제목
+					int startIndex = fileName.indexOf("_");
+					int endIndex = fileName.indexOf(".txt");
+					subject = fileName.substring(startIndex + 1, endIndex).trim();
+
+					// 작성자, 날짜
+					try (BufferedReader br = new BufferedReader(new FileReader(new File(curDir, fileName)))) {
+						String line;
+						StringBuffer sb = new StringBuffer();
+
+						while ((line = (br.readLine())) != null) {
+							sb.append(line + "\n");
+						}
+
+						// 작성자
+						startIndex = sb.toString().indexOf("]");
+						endIndex = sb.toString().indexOf("제목");
+						name = sb.toString().substring(startIndex + 2, endIndex).trim();
+
+						// 날짜
+						int startIndex2 = sb.toString().indexOf("날짜");
+						int endIndex2 = sb.toString().indexOf("작성자");
+						regdate = sb.toString().substring(startIndex2 + 4, endIndex2).trim();
+
+					} catch (FileNotFoundException e) {
+						e.printStackTrace();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				
+					list.add(new WriteDTO(wkey, subject, name, regdate));
+				}
+
+				status = "OK";
+			} // end for (from ~ end 까지의 글 출력)
+
+			int count = fileList.length;
+			request.setAttribute("count", count);
+
+			// 글 목록(배열에 담기 위해 )
+			JSONArray dataArr = new JSONArray(); // array
+
+			for (int i = 0; i < list.size(); i++) {
+				JSONObject jsonObj = new JSONObject();
+
+				jsonObj.put("wkey", list.get(i).getWkey());
+				jsonObj.put("name", list.get(i).getName());
+				jsonObj.put("subject", list.get(i).getSubject());
+				jsonObj.put("regdate", list.get(i).getRegdate());
+
+				// array 에 추가
+				dataArr.add(jsonObj); // 배열의 경우, 값만 넣으면 되니까
 			}
 
-//					for (int j = 1; j <= wkey; j++) {
-//
-//						// 글번호
-//						int wkey = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
-//						// 제목
-//						int startIndex = fileName.indexOf("_");
-//						int endIndex = fileName.indexOf(".txt");
-//						String subject = fileName.substring(startIndex + 1, endIndex).trim();
-//						System.out.println("wkey ::: " + wkey);
-////					}
-//			for (int i = from - 1; i < (from + pageRows) - 1; i++) {
-//				// 파일이름
-//				String fileName = fileList[i].getName();
-//
-//				// 글번호
-//				int wkey = Integer.parseInt(fileName.substring(0, fileName.indexOf("_")));
-//				// 제목
-//				int startIndex = fileName.indexOf("_");
-//				int endIndex = fileName.indexOf(".txt");
-//				String subject = fileName.substring(startIndex + 1, endIndex).trim();
-//				System.out.println("wkey ::: " + wkey);
-//			}
-			
-			
-			
-			status = "OK";
-		}
+			for (int i = 0; i < dataArr.size(); i++) {
+				System.out.println("JSONArray 에 저장된 값 : " + dataArr.get(i));
+			}
 
-		System.out.println(status);
+			// 글목록
+			request.setAttribute("data", dataArr);
+
+		} // if-else(파일이 있는경우)
+
 		request.setAttribute("status", status);
 		request.setAttribute("message", message.toString());
-		request.setAttribute("list", Arrays.asList(fileList));
 		request.setAttribute("page", page);
 		request.setAttribute("pageRows", pageRows);
 		request.setAttribute("writePages", writePages);
 		request.setAttribute("totalCnt", totalCnt);
 		request.setAttribute("totalPage", totalPage);
 
-//		responseJSON(request, response);
-//		AjaxWriteList result = new AjaxWriteList(); // AjaxWriteList 객체 생성해주고
-//
-//		result.setStatus((String) request.getAttribute("status"));
-//		result.setMessage((String) request.getAttribute("message"));
-//
-//		if (fileList != null) {
-//			result.setCount(fileList.length);
-//			result.setList(Arrays.asList(fileList));
-//		}
-//
-//		// 페이징 할 때 필요한 값들
-//		try {
-//			result.setPage((Integer) request.getAttribute("page"));
-//			result.setTotalPage((Integer) request.getAttribute("totalPage"));
-//			result.setWritePages((Integer) request.getAttribute("writePages"));
-//			result.setPageRows((Integer) request.getAttribute("pageRows"));
-//			result.setTotalCnt((Integer) request.getAttribute("totalCnt"));
-//
-//		} catch (Exception e) {
-//
-//		}
-
-		// --------------------------------------------------------
-//
-//		ObjectMapper mapper = new ObjectMapper(); // Json 매핑할 객체
-//
-//		// 자바객체를 제이슨 문자열로 바꾸고, 이거를 제이슨 타입으로 변환해줌
-//		try {
-//			String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(result);
-//
-//			response.setContentType("application/json; charset=utf-8");
-//			response.getWriter().write(jsonString);
-//		} catch (JsonProcessingException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-
 	} // end execute
 
-
-
-	
 }
