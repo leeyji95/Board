@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,8 +27,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
 
-import com.imoxion.board.beans.Key;
+import com.imoxion.board.beans.BoardInfo;
 import com.imoxion.board.beans.WriteDTO;
 import com.imoxion.board.command.ListCommand;
 
@@ -38,6 +40,11 @@ public class AjaxController {
 	private static final org.slf4j.Logger logger = LoggerFactory.getLogger(AjaxController.class);
 	public static final String DIR_PATH = "C:\\Imoxion Developer Tools\\tools\\Board\\Board\\src\\main\\webapp\\BoardDir";
 
+	private File f = new File(DIR_PATH);
+	private String status = "FAIL";
+	private StringBuffer message = new StringBuffer();
+	int count = 0;
+	
 	/**
 	 * 글 목록 처리
 	 * 
@@ -56,9 +63,6 @@ public class AjaxController {
 		logger.info("curWorking(현재디렉토리) - " + curWorkingDir);
 
 		File[] fileList = curDir.listFiles();
-
-		// 싱글톤으로 wkey 값 조종해보자
-		Key keyInstance = Key.getInstance();
 
 		// 페이징처리 위한 코드 실행
 		new ListCommand().execute(request, response);
@@ -94,7 +98,7 @@ public class AjaxController {
 	}
 
 	/**
-	 * 글 등록처리
+	 * 글 등록 처리
 	 * 
 	 * @param subject
 	 * @param name
@@ -104,7 +108,7 @@ public class AjaxController {
 	 */
 	@RequestMapping("/boardfile/writeOk.do")
 	@ResponseBody
-	public void writeOk(@RequestParam("subject") String subject, @RequestParam("name") String name,
+	public ModelAndView writeOk(@RequestParam("subject") String subject, @RequestParam("name") String name,
 			@RequestParam("content") String content, HttpServletRequest request, HttpServletResponse response,
 			Locale locale, Model model) {
 
@@ -112,9 +116,9 @@ public class AjaxController {
 		logger.info("/writeOk.do 매핑 ::: ");
 
 		// json response 에 필요한 값들
-		StringBuffer message = new StringBuffer();
-		String status = "FAIL"; // 기본 FAIL 설정
-		int count = 0; // 데이터 개수 설정
+//		StringBuffer message = new StringBuffer();
+//		String status = "FAIL"; // 기본 FAIL 설정
+//		int count = 0; // 데이터 개수 설정
 
 		// 유효성 체크
 		if (subject == null || subject.trim().length() == 0) {
@@ -123,14 +127,10 @@ public class AjaxController {
 			message.append("[유효하지 않은 parameter : 작성자 필수]");
 		} else {
 
-			// 현재 경로 밑에 webapp 하위 폴더로 만들기...
-			String path = DIR_PATH; // C:\Imoxion Developer Tools\workSpace\Board\Board\src\main\webapp\filebox
-			File dirPath = new File(path); // dirPath :::: C:\WorkSpace\Board\Board\src\main\webapp\filebox
-
 			// 해당 디렉토리가 존재하지 않으면
-			if (!dirPath.exists()) {
+			if (!f.exists()) {
 				// 디렉토리 생성
-				if (dirPath.mkdir()) {
+				if (f.mkdir()) {
 					logger.info("폴더 생성!!");
 				} else {
 					logger.info("폴더 생성 실패..");
@@ -138,34 +138,27 @@ public class AjaxController {
 			} else { // 이미 있으면
 				logger.info("이미 폴더 존재~");
 			}
-//-------------------------------------------------------------------------------------------------------------------------------
-			// 고유한 이름으로 파일 생성하기
+
 			File filePath = null;
 			String fName = null;
 
-			Key k = Key.getInstance();
-			int wkey = k.getWkey();
+			// 키값 생성
+			AtomicInteger fileKey = new AtomicInteger();
+			BoardInfo BI = new BoardInfo();
+			int wkey = BI.lastWkey();
 
-			if (wkey > 0) {
-				if (wkey == 1) {
-					fName = wkey + "_" + subject + ".txt";
-					filePath = new File(dirPath, fName); // filePath :::
-															// C:\WorkSpace\Board\Board\src\main\webapp\filebox\fName
-					logger.info("wkey == 1 일때  : " + wkey);
-
-					wkey = k.createWkey(); // 1 증가시킴
-
-				} else {
-					fName = wkey + "_" + subject + ".txt";
-					filePath = new File(dirPath, fName); // filePath :::
-															// C:\WorkSpace\Board\Board\src\main\webapp\filebox\fName
-					logger.info("wkey create() :: " + k.getWkey());
-
-					wkey = k.createWkey();
-				}
+			if (wkey == 0) {
+				fileKey.incrementAndGet(); // 1 증가하고 얻기
+				logger.info("fileKey(1이 나와야함) - " + fileKey.get());
+			} else {
+				fileKey.set(wkey); // 글의 마지막 번호로 세팅해주고
+				fileKey.incrementAndGet(); // 1증가
+				logger.info("fileKey(1이 아닌경우) - " + fileKey.get());
 			}
 
-//-------------------------------------------------------------------------------------------------------------------------------			
+			// 파일 생성
+			fName = fileKey.get() + "_" + subject + ".txt";
+			filePath = new File(f, fName);
 
 			// 파일이 존재하지 않으면 (wkey 값이 자동 증가되므로 파일이름 중복될 수 없음)
 			if (!filePath.exists()) {
@@ -176,8 +169,6 @@ public class AjaxController {
 						Date date = new Date();
 						DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.SHORT);
 						String formattedDate = dateFormat.format(date);
-
-						model.addAttribute("regDate", formattedDate);
 
 						// 파일에 쓰고 저장
 						try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(filePath)))) {
@@ -209,33 +200,24 @@ public class AjaxController {
 			}
 		} // end if
 
-		request.setAttribute("status", status);
-		request.setAttribute("message", message.toString());
-		request.setAttribute("count", count);
+		ModelAndView mv = new ModelAndView("jsonView");
 
-		responseJSON(request, response);
+		mv.setViewName("jsonView");
+		mv.addObject("status", status);
+		mv.addObject("message", message.toString());
+		mv.addObject("count", count);
+		
+		return mv;
 	}
 
-	// response 할 메소드
-	public void responseJSON(HttpServletRequest request, HttpServletResponse response) {
 
-		JSONObject jsonObj = new JSONObject();
-
-		jsonObj.put("status", request.getAttribute("status"));
-		jsonObj.put("message", request.getAttribute("message"));
-		jsonObj.put("count", request.getAttribute("count"));
-		jsonObj.put("wkey", request.getAttribute("wkey"));
-
-		String jsonString = jsonObj.toString(); // JSON 객체 -> String 변환
-		response.setContentType("application/json; charset=utf-8"); // MIME 설정
-
-		try {
-			response.getWriter().write(jsonString); // response 내보내기
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	} // end responseJSON
-
+	/**
+	 * 글 조회 처리
+	 * 
+	 * @param request
+	 * @param response
+	 * @param wkey
+	 */
 	@RequestMapping("/boardfile/view.do")
 	@ResponseBody
 	public void View(HttpServletRequest request, HttpServletResponse response, @RequestParam("wkey") String wkey) {
@@ -296,8 +278,7 @@ public class AjaxController {
 
 			list.add(new WriteDTO(Integer.parseInt(wkey), subject, name, regdate, content));
 		}
-		
-		
+
 		JSONArray dataArr = new JSONArray(); // array
 		JSONObject jsonObj = new JSONObject();
 
@@ -313,37 +294,50 @@ public class AjaxController {
 			// array 에 추가
 			dataArr.add(jsonObj);
 		}
-		
-		
+
 		for (int i = 0; i < dataArr.size(); i++) {
 			logger.info("JSONArray 에 저장된 값 : " + dataArr.get(i));
 		}
-		
+
 		// 오브젝트와 배열에 값을 넣을 때 모두 put 사용한다.
-		String jsonString = jsonObj.toString()	; //JSON 객체가 --> String 변환
+		String jsonString = jsonObj.toString(); // JSON 객체가 --> String 변환
 		response.setContentType("application/json; charset=utf-8"); // MIME 설정
-		
+
 		try {
-			response.getWriter().write(jsonString); // response 내보내기 
+			response.getWriter().write(jsonString); // response 내보내기
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
 	} // end View()
 
-	
+	/**
+	 * 글 수정 처리
+	 * 
+	 * @param request
+	 * @param response
+	 * @param wkey
+	 * @param subject
+	 * @param content
+	 * @throws IOException
+	 */
 	@RequestMapping("/boardfile/updateOk.do")
-	public void UpdateOk(HttpServletRequest request, HttpServletResponse response, 
-			@RequestParam("wkey") String wkey, @RequestParam("subject") String subject, @RequestParam("content") String content) {
-		
+	@ResponseBody
+	public void UpdateOk(HttpServletRequest request, HttpServletResponse response, @RequestParam("wkey") String wkey,
+			@RequestParam("subject") String subject, @RequestParam("content") String content) throws IOException {
+
+		logger.info("UpdateOk.do 진입");
+
 		// response 에 필요한 값들
 		StringBuffer message = new StringBuffer();
 		String status = "FAIL"; // 기본 FAIL
+		int count = 0;
 
 		// 해당 wkey 글번호로 제목, 작성자, 내용
 		File curDir = new File(AjaxController.DIR_PATH);
 		List<WriteDTO> list = new ArrayList<WriteDTO>();
 
+		// 특정 파일 가져오기
 		FilenameFilter filter = new FilenameFilter() {
 
 			public boolean accept(File curDir, String name) {
@@ -353,82 +347,112 @@ public class AjaxController {
 
 		String[] fileName = curDir.list(filter); // 해당 글번호로 시작하는 파일이름을 배열로 출력한다.
 
-		for (int i = 0; i < fileName.length; i++) {
-			logger.info(fileName[i]);
+		// 어차피 1개 밖에 없으므로, 0번째 fileName 가져오기
+		logger.info("해당 파일이름 - " + fileName[0]);
 
-			// 제목
-			int startIndex = fileName[i].indexOf("_");
-			int endIndex = fileName[i].indexOf(".txt");
-			subject = fileName[i].substring(startIndex + 1, endIndex).trim();
+		int startIndex = 0, endIndex = 0;
+		String name = null;
+		String fName = null;
 
-			// 작성자, 내용
-			try (BufferedReader br = new BufferedReader(
-					new FileReader(new File(AjaxController.DIR_PATH, fileName[i])))) {
-				String line;
-				StringBuffer sb = new StringBuffer();
+		// 해당 파일을 읽어들여서 제목 , 내용 덮어쓰기 (수정)
+		// 해당 파일에서 작성자만 뽑고, 삭제 후 같은 글번호로 파일 생성한다.
+		try (BufferedReader br = new BufferedReader(new FileReader(new File(AjaxController.DIR_PATH, fileName[0])))) {
+			String line;
+			StringBuffer sb = new StringBuffer();
 
-				while ((line = (br.readLine())) != null) {
-					sb.append(line + "\n");
-				}
-
-				// 작성자
-				startIndex = sb.toString().indexOf("]");
-				endIndex = sb.toString().indexOf("제목");
-				name = sb.toString().substring(startIndex + 2, endIndex).trim();
-
-				// 내용
-				int startIndex2 = sb.toString().indexOf("내용");
-				content = sb.toString().substring(startIndex2 + 3).trim();
-
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e1) {
-				e1.printStackTrace();
+			while ((line = (br.readLine())) != null) {
+				sb.append(line + "\n");
 			}
 
-			list.add(new WriteDTO(Integer.parseInt(wkey), subject, name, regdate, content));
+			// 작성자
+			startIndex = sb.toString().indexOf("]");
+			endIndex = sb.toString().indexOf("제목");
+			name = sb.toString().substring(startIndex + 2, endIndex).trim();
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
-		
-		
+
+		// 해당 파일 삭제
+		File[] f = curDir.listFiles(filter);
+		if (f[0].exists()) { // 만약 해당 파일 존재하면,
+			f[0].delete(); // 삭제
+
+			// 파일 이름 다시 생성
+			fName = wkey + "_" + subject + ".txt";
+			File updateFile = new File(AjaxController.DIR_PATH, fName); // 해당 경로에 파일 객체 생성
+
+			if (!updateFile.exists()) {
+				if (updateFile.createNewFile()) {
+
+				}
+
+				Date date = new Date();
+				DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.LONG, DateFormat.SHORT);
+				String formattedDate = dateFormat.format(date);
+
+				// 파일에 쓰고 저장
+				try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(updateFile)))) {
+
+					// 데이터 쓰고 저장하기
+					out.println("날짜 : " + formattedDate);
+					out.println("작성자 ] " + name);
+					out.println("제목: " + subject);
+					out.println("내용: " + content);
+					out.flush();
+					logger.info("수정된 subject : " + subject + ", name : " + name + ", content : " + content + " 날짜 : "
+							+ formattedDate);
+					count = 1;
+					message.append(count + "개" + " 글 수정 성공!");
+					status = "OK";
+
+					list.add(new WriteDTO(Integer.parseInt(wkey), subject, name, formattedDate, content));
+
+				} catch (IOException e) {
+//					message.append("파일 저장 실패 :: " + e.getMessage());
+					message.append("글 수정 실패...");
+					logger.error("Failed saving file : " + e.getMessage());
+				}
+
+			} else {
+
+			}
+
+		}
+
 		JSONArray dataArr = new JSONArray(); // array
 		JSONObject jsonObj = new JSONObject();
 
 		for (int i = 0; i < list.size(); i++) {
 
+			jsonObj.put("status", "OK");
+			jsonObj.put("count", count);
 			jsonObj.put("wkey", list.get(i).getWkey());
 			jsonObj.put("name", list.get(i).getName());
 			jsonObj.put("subject", list.get(i).getSubject());
 			jsonObj.put("content", list.get(i).getContent());
-			jsonObj.put("status", "OK");
-			jsonObj.put("message", "글을 조회하는데 실패하였습니다.");
+			jsonObj.put("message", message.toString());
 
 			// array 에 추가
 			dataArr.add(jsonObj);
 		}
-		
-		
-		
-		
+
+		for (int i = 0; i < dataArr.size(); i++) {
+			logger.info("JSONArray 에 저장된 값 : " + dataArr.get(i));
+		}
+
+		// 오브젝트와 배열에 값을 넣을 때 모두 put 사용한다.
+		String jsonString = jsonObj.toString(); // JSON 객체가 --> String 변환
+		response.setContentType("application/json; charset=utf-8"); // MIME 설정
+
+		try {
+			response.getWriter().write(jsonString); // response 내보내기
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	} // end UpdateOk
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 } // end AjaxController

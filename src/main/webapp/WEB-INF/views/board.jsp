@@ -8,7 +8,7 @@
 <title>게시판</title>
 </head>
 <script	src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script src="${pageContext.request.contextPath }/JS/board.js"></script>
+<script src="${pageContext.request.contextPath }/JS/Board.js"></script>
 <title>게시판</title>
 <style>
 /* 글 목록 */
