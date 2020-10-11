@@ -50,14 +50,6 @@ $(document).ready(function(){
 	});
 });
 
-//window.onkeyup = function(e) {
-//	var key = e.keyCode ? e.keyCode : e.which;
-//
-//	if(key == 27) {
-//		$(".modal").fadeOut(90);
-//		$("body").css({overflow:'scroll'}).unbind('touchmove');
-//	}
-//}
 	
 // page 번째 페이지 로딩 
 function loadPage(page){
@@ -66,7 +58,7 @@ function loadPage(page){
 		url : "list.do?page=" + page + "&pageRows=" + pageRows
 		, type : "get"
 		, cache : false
-		, dataType : "JSON"
+		, dataType : "json"
 		, success : function(data, status){
 			if(status == "success"){
 				
@@ -220,7 +212,7 @@ function chkWrite(){
 	$('#frmWrite')[0].reset();  // 특정 object 만 reset 하는 애이다. 
 	// 제이쿼리 는 여러개의 오브젝트를 반환한다. 그래서  제이쿼리 셀렉터에서 특정 애 하나 꺼내어서 reset 해줘야한다.
 	
-	return true;  // 페이지 리도딩은 안 할 것이다.
+	return true;    // 페이지 리도딩은 안 할 것이다.
 } // end chkWrite()
 
 
@@ -284,14 +276,14 @@ function addViewEvent(){
 					if(data.status == "OK"){
 						
 						// 읽어온 view 데이터를 전역변수에 세팅
-						viewItem = data;
+						viewItem = data.data[0];
 						
 						// 팝업에 보여주기
 						setPopup("view");
 						$("#dlg_write").show();
 						
  					} else {
- 						alert("VIEW 실패 " + data.message);
+ 						alert(data.message);
  					}
 				}
 			}
@@ -405,12 +397,12 @@ function chkUpdate(){
 		success: function(data, status){
 			if(status == "success"){
 				if(data.status == "OK"){
-					alert("UPDATE 성공" + data.count + "개:" + data.status);
+					alert("글 수정 성공" + data.count + "개:" + data.status);
+					
 					// 성공한 경우 현재 페이지 리로딩
 					loadPage(window.page);  
 				} else{
-					alert("UPDATE 실패" + data.status + " : " + data.message);
-					
+					alert("글 수정 실패" + data.status + " : " + data.message);
 				}
 				$("#dlg_write").hide();  //현재 팝업 닫기.
 			}

@@ -31,7 +31,9 @@
 	<context:component-scan	base-package="com.imoxion.board" />
 	
 	<!-- Config.java 에 있는 메소드 이름 = id  같도록 설정 -->
-	<beans:bean id="beanNameViewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver"></beans:bean>
-	<beans:bean id="MappingJacksonJsonView" class="org.springframework.web.servlet.view.json.MappingJacksonJsonView"></beans:bean>
+	<beans:bean id="beanNameViewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver" p:order="0"></beans:bean>
+	<beans:bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+		<beans:property name="contentType"  value="application/json;charset=UTF-8"></beans:property>
+	</beans:bean>
 
 </beans:beans>
